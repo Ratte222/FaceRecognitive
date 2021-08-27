@@ -28,5 +28,12 @@ namespace FaceRecognitive.Controllers
             
             return Ok(_faceRecognitive.WhoIsInEachImage(showDistance, tolerance));
         }
+
+        [HttpGet("GetFaceLocation")]
+        public IActionResult GetFaceLocation()
+        {
+            return Ok(_faceRecognitive.GetFaceLocation());
+        }
+
     }
 }

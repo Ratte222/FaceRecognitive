@@ -8,5 +8,6 @@ namespace BLL.Interfaces
     public interface IFaceRecognitive
     {
         List<FaceRecognitiveOutDTO> WhoIsInEachImage(bool? showDistance, double? tolerance);
+        List<FaceDetecrionDTO> GetFaceLocation();
     }
 }

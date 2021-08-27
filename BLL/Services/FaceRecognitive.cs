@@ -18,32 +18,80 @@ namespace BLL.Services
             _appSettings = appSettings;
         }
 
+        //always return one face location in one image
+        public List<FaceDetecrionDTO> GetFaceLocation()
+        {
+            string pathKnownImage = Path.Combine(Directory.GetCurrentDirectory(), "FaceRecognitive", "unknown_face");
+            return ParseFaceDetection(ProcessingImage(_appSettings.PathTo_face_detection, pathKnownImage));
+        }
+
+        public List<FaceDetecrionDTO> ParseFaceDetection(string content)
+        {
+            string[] contentSplit = content.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            List<FaceDetecrionDTO> result = new List<FaceDetecrionDTO>();
+            foreach (string value in contentSplit)
+            {
+                string[] valueSplit = value.Split(',', StringSplitOptions.RemoveEmptyEntries);
+                valueSplit[0] = Path.GetFileName(valueSplit[0]);
+                valueSplit[4] = valueSplit[4].TrimEnd();
+                FaceDetecrionDTO faceDetecrionDTO = result.FirstOrDefault(i => i.ImageName.ToLower() == valueSplit[0].ToLower());
+                bool imageExist = false;
+                if (faceDetecrionDTO != null)
+                {
+                    imageExist = true;
+                }
+                else
+                {
+                    faceDetecrionDTO = new FaceDetecrionDTO()
+                    {
+                            ImageName = valueSplit[0]
+                    };
+                    faceDetecrionDTO.Top = new List<int>();
+                    faceDetecrionDTO.Right = new List<int>();
+                    faceDetecrionDTO.Bottom = new List<int>();
+                    faceDetecrionDTO.Left = new List<int>();
+                }
+                faceDetecrionDTO.Top.Add(Convert.ToInt32(valueSplit[1]));
+                faceDetecrionDTO.Right.Add(Convert.ToInt32(valueSplit[2]));
+                faceDetecrionDTO.Bottom.Add(Convert.ToInt32(valueSplit[3]));
+                faceDetecrionDTO.Left.Add(Convert.ToInt32(valueSplit[4]));
+                if (!imageExist)
+                { 
+                    result.Add(faceDetecrionDTO);
+                }
+            }
+            return result;
+        }
+
         public List<FaceRecognitiveOutDTO> WhoIsInEachImage(bool? showDistance, double? tolerance)
         {
             string pathUnknownImage = Path.Combine(Directory.GetCurrentDirectory(), "FaceRecognitive", "unknown_face");
             string pathKnownImage = Path.Combine(Directory.GetCurrentDirectory(), "FaceRecognitive", "known_face");
+            string sd = null, tol = null;
+            if (showDistance.HasValue)
+            {
+                sd = $"--show-distance {showDistance.Value.ToString().ToLower()} ";
+            }
+            if (tolerance.HasValue)
+            {
+                tol = $"--tolerance {tolerance.Value.ToString(CultureInfo.InvariantCulture)} ";
+            }
+            return ParseOut_face_recognition(ProcessingImage(
+                _appSettings.PathTo_face_recognition,$"{sd}{tol}{pathKnownImage} {pathUnknownImage}"));
+        }
+
+        private string ProcessingImage(string fileName, string argument)
+        {
             using (Process myProcess = new Process())
             {
-                myProcess.StartInfo.FileName = _appSettings.PathTo_face_recognition;
-                string sd = null, tol = null;
-                if(showDistance.HasValue)
-                {
-                    sd = $"--show-distance {showDistance.Value.ToString().ToLower()} ";
-                }
-                if(tolerance.HasValue)
-                {
-                    tol = $"--tolerance {tolerance.Value.ToString(CultureInfo.InvariantCulture)} ";
-                }
-                myProcess.StartInfo.Arguments = $"{sd}{tol}{pathKnownImage} {pathUnknownImage}";
-                //myProcess.StartInfo.WorkingDirectory = Directory.GetCurrentDirectory();
+                myProcess.StartInfo.FileName = fileName;                
+                myProcess.StartInfo.Arguments = argument;
                 myProcess.StartInfo.UseShellExecute = false;
                 myProcess.StartInfo.RedirectStandardOutput = true;
-                //myProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                //myProcess.StartInfo.CreateNoWindow = true;
                 myProcess.Start();
                 myProcess.WaitForExit();
-                return ParseOut_face_recognition(myProcess.StandardOutput.ReadToEnd());
-            }           
+                return myProcess.StandardOutput.ReadToEnd();
+            }
         }
 
         private List<FaceRecognitiveOutDTO> ParseOut_face_recognition(string content)

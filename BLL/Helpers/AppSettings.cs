@@ -8,5 +8,6 @@ namespace BLL.Helpers
     {
         public string TempDirectory { get; set; }
         public string PathTo_face_recognition { get; set; }
+        public string PathTo_face_detection { get; set; }
     }
 }
